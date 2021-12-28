@@ -1,0 +1,14 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "deno",
+			"command": "run",
+			"problemMatcher": [
+				"$deno"
+			],
+			"label": "deno: run",
+			"args": ["--allow-all", "${workspaceFolder}/main.js"],
+		}
+	]
+}
