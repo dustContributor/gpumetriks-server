@@ -58,6 +58,8 @@ export const register = server => {
     'pp_dpm_sclk': parsers.clocks
   }
 
+  const parserFor = v => parsersByName[v] || parsers.generic
+
   const names = []
   const readAt = name => Deno.readTextFileSync(baseDir + name).trim()
 
@@ -85,14 +87,17 @@ export const register = server => {
     }
   }
 
-  const parserFor = v => parsersByName[v] || parsers.generic
+  const handlers = names.sort().map(v => ({
+    parser: parserFor(v),
+    fileName: v,
+    name: toCamelCalse(v)
+  }))
 
-  const handlersByRoute = Object.assign({}, ...names.sort().map(name => {
-    const parser = parserFor(name)
-    const endpointName = toCamelCalse(name)
+  const handlersByRoute = Object.assign({}, ...handlers.map(v => {
+    const { parser, fileName } = v
     return {
-      ['/gpu/' + endpointName]: _ => {
-        const content = readAt(name)
+      ['/gpu/' + v.name]: _ => {
+        const content = readAt(fileName)
         const res = parser(content)
         return responses.ok(res)
       }
@@ -100,14 +105,20 @@ export const register = server => {
   }))
 
   // Generic route for all clocks at once
-  const clocks = names.filter(v => v.endsWith('clk')).map(v => ({
-    parser: parserFor(v),
-    fileName: v,
-    name: toCamelCalse(v)
-  }))
+  const clocks = handlers.filter(v => v.name.endsWith('clk'))
   handlersByRoute['/gpu/clocks'] = _ => {
     const res = {}
     for (const v of clocks) {
+      const content = readAt(v.fileName)
+      const parsed = v.parser(content)
+      res[v.name] = parsed
+    }
+    return responses.ok(res)
+  }
+  // Generic route to get everything
+  handlersByRoute['/gpu/all'] = _ => {
+    const res = {}
+    for (const v of handlers) {
       const content = readAt(v.fileName)
       const parsed = v.parser(content)
       res[v.name] = parsed

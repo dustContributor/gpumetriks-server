@@ -36,7 +36,11 @@ export const register = server => {
     }
   }
 
-  const namesByPrefix = names.sort().reduce((prev, cur) => {
+  // Try to 'normalize' up some names in favor of their labels
+  const endsWithDigit = /.*[0-9]/
+  const digits = /[0-9]/
+
+  const namesByPrefix = names.reduce((prev, cur) => {
     let prefix = cur
     let name = cur
     const pi = cur.indexOf('_')
@@ -49,20 +53,22 @@ export const register = server => {
     dst[toCamelCalse(name)] = cur
     return prev
   }, {})
-
-  // Try to fix up some names in favor of their labels
-  const endsWithDigit = /.*[0-9]/
-  const digits = /[0-9]/
   for (const e of Object.entries(namesByPrefix)) {
     const [prefix, names] = e
-    if (names.length <= 1) {
-      continue
-    }
-    if (!names.label || !endsWithDigit.test(prefix)) {
+    if (!endsWithDigit.test(prefix)) {
       continue
     }
     const fixedPrefix = prefix.substring(0, prefix.search(digits))
-    const content = readAt(names.label)
+    let content
+    if (names.label) {
+      content = readAt(names.label)
+    } else {
+      // Invent it a label if it doesn't has one
+      content = ''
+    }
+    if (names.length <= 1) {
+      continue
+    }
     const fixedName = toCamelCalse(`${fixedPrefix}_${content}`)
     // Delete previous mapping, no need for the label anymore
     delete namesByPrefix[prefix]
@@ -71,7 +77,7 @@ export const register = server => {
     namesByPrefix[fixedName] = names
   }
 
-  const sortByKey = (a,b) => a[0].localeCompare(b[0])
+  const sortByKey = (a, b) => a[0].localeCompare(b[0])
 
   const handlersByRoute = Object.assign({}, ...Object.entries(namesByPrefix).sort(sortByKey).map(v => {
     const [prefix, names] = v
