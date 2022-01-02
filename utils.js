@@ -6,9 +6,18 @@ export const toCamelCalse = v => {
     return v
   }
   const parts = v.split(NAME_SEPARATOR)
-  let finalName = parts[0]
-  for (let i = 1; i < parts.length; ++i) {
+  let finalName = null
+  for (let i = 0; i < parts.length; ++i) {
     const part = parts[i]
+    if (!part) {
+      // Empty.
+      continue
+    }
+    if (!finalName) {
+      finalName = part
+      // First non-empty part
+      continue
+    }
     // First uppercase, rest as-is
     const first = part[0].toUpperCase()
     finalName += first + part.slice(1)
@@ -30,7 +39,7 @@ export const trimChar = (str, ch) => {
     ++start
   }
   let end = str.length
-  if(start < str.length) {
+  if (start < str.length) {
     while (end > start && str[end - 1] === ch) {
       --end
     }
