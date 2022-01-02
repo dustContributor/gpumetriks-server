@@ -40,7 +40,7 @@ export const register = server => {
   const endsWithDigit = /.*[0-9]/
   const digits = /[0-9]/
 
-  const namesByPrefix = names.reduce((prev, cur) => {
+  const namesByPrefix = names.sort().reduce((prev, cur) => {
     let prefix = cur
     let name = cur
     const pi = cur.indexOf('_')
@@ -53,8 +53,8 @@ export const register = server => {
     dst[toCamelCalse(name)] = cur
     return prev
   }, {})
-  for (const e of Object.entries(namesByPrefix)) {
-    const [prefix, names] = e
+
+  for (const [prefix, names] of Object.entries(namesByPrefix)) {
     if (!endsWithDigit.test(prefix)) {
       continue
     }
@@ -65,6 +65,11 @@ export const register = server => {
     } else {
       // Invent it a label if it doesn't has one
       content = ''
+    }
+    if (names[prefix]) {
+      // Fix pwm1 to value, since it doesn't has a _something for its value just pwm1
+      names.value = names[prefix]
+      delete names[prefix]
     }
     if (names.length <= 1) {
       continue
@@ -77,29 +82,58 @@ export const register = server => {
     namesByPrefix[fixedName] = names
   }
 
-  const sortByKey = (a, b) => a[0].localeCompare(b[0])
-
-  const handlersByRoute = Object.assign({}, ...Object.entries(namesByPrefix).sort(sortByKey).map(v => {
-    const [prefix, names] = v
-    const endpointName = toCamelCalse(prefix)
-    const entries = Object.entries(names)
-    const fileName = entries[0][1]
+  const handlers = Object.entries(namesByPrefix).map(([prefix, names]) => {
+    const entries = Object.entries(names).map(([name, fileName]) => ({
+      parser: parsers.generic,
+      name: name,
+      fileName: fileName
+    }))
     return {
-      ['/hwmon/' + endpointName]: entries.length > 1 ? _ => {
+      parser: parsers.generic,
+      name: prefix,
+      entries: entries.length > 1 ? entries : [],
+      fileName: entries.length > 1 ? '' : entries[0].fileName
+    }
+  })
+
+  const handlersByRoute = Object.assign({}, ...handlers.map(v => {
+    const { parser, fileName, entries } = v
+    return {
+      ['/hwmon/' + v.name]: entries.length > 1 ? _ => {
         const res = {}
-        for (const n of entries) {
-          const [name, fileName] = n
-          const content = readAt(fileName)
-          res[name] = parsers.generic(content)
+        for (const e of entries) {
+          const content = readAt(e.fileName)
+          const parsed = e.parser(content)
+          res[e.name] = parsed
         }
         return responses.ok(res)
       } : _ => {
         const content = readAt(fileName)
-        const res = parsers.generic(content)
+        const res = parser(content)
         return responses.ok(res)
       }
     }
   }))
+
+  // Generic route to get everything
+  handlersByRoute['/hwmon/all'] = _ => {
+    const res = {}
+    for (const v of handlers) {
+      if (v.entries.length <= 1) {
+        const content = readAt(v.fileName)
+        const parsed = v.parser(content)
+        res[v.name] = parsed
+        continue
+      }
+      const tmp = res[v.name] = {}
+      for (const e of v.entries) {
+        const content = readAt(e.fileName)
+        const parsed = e.parser(content)
+        tmp[e.name] = parsed
+      }
+    }
+    return responses.ok(res)
+  }
 
   server.mapAll(handlersByRoute)
 }
