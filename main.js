@@ -5,11 +5,13 @@ import { WebServer } from './WebServer.js'
 import * as deps from './handlers/deps.js'
 import * as gpu from './handlers/gpu.js'
 import * as statics from './handlers/static.js'
+import * as hwmon from './handlers/hwmon.js'
 
 const server = new WebServer(config.SERVER_PORT)
 
 await deps.register(server)
 await gpu.register(server)
+await hwmon.register(server)
 await statics.register(server)
 
 // const handlersPath = utils.trimSeparator(config.HANDLERS_PATH)
