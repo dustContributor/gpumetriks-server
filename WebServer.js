@@ -16,8 +16,8 @@ export class WebServer {
   }
 
   mapAll(handlersByRoute) {
-    for (const k of Object.keys(handlersByRoute)) {
-      this.map(k, handlersByRoute[k])
+    for (const e of Object.entries(handlersByRoute)) {
+      this.map(...e)
     }
   }
 

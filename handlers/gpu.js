@@ -5,8 +5,7 @@ import * as utils from '../utils.js'
 import { toCamelCalse } from '../utils.js'
 
 export const register = server => {
-  const cardsPath = utils.trimChar(config.CARD_PATH, '/')
-  const baseDir = `/${cardsPath}/device/`
+  const baseDir = `/${utils.trimSeparator(config.DRM_PATH)}/device/`
 
   const ignored = new Set([
     'uevent',
