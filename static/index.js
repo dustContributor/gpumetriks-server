@@ -1,4 +1,16 @@
 class App {
+  static #utils = Object.freeze({
+    padZeroes: v => v.toString().padStart(2, '0'),
+    formatTstamp: v => App.utils.padZeroes(v.getHours()) +
+      ':' + App.utils.padZeroes(v.getMinutes()) +
+      ':' + App.utils.padZeroes(v.getSeconds()),
+    template: content => new Function('self', ('return `' + content + '`').replaceAll(/(\r\n|\n|\r)/gm, '')),
+    el: Object.freeze({
+      at: id => document.querySelector('#' + id),
+      templateAt: id => App.utils.template(App.utils.el.at(id).innerHTML)
+    })
+  })
+  static get utils() { return App.#utils }
   constructor() {
   }
   start() {
@@ -9,16 +21,12 @@ class App {
       dceclk: 'gpu/ppDpmDcefclk',
       socclk: 'gpu/ppDpmSocclk',
     }
-
-    const padZeroes = v => v.toString().padStart(2, '0')
-    const formatTstamp = v => padZeroes(v.getHours()) +
-      ':' + padZeroes(v.getMinutes()) +
-      ':' + padZeroes(v.getSeconds())
-    const tooltipRow = v => `<span style='background-color:${v.color}'></span><label>${v.name} - ${v.value[1] + v.value[2]}</label>`
+    const $mainChart = App.utils.el.at('main-chart')
+    const tooltipTmpl = App.utils.el.templateAt('tooltip-template')
+    const tooltipRowTmpl = App.utils.el.templateAt('tooltip-row-template')
 
     const REFRESH_RATE = 1000
     const MAX_SAMPLES = 500
-    const $mainChart = document.querySelector('#main-chart')
     const mainChart = echarts.init($mainChart);
     const series = Object.keys(apisByName).sort().map(v => ({
       data: [],
@@ -29,17 +37,28 @@ class App {
     }))
     const option = {
       title: {
-        text: 'Dynamic Data & Time Axis'
+        text: ''
       },
       tooltip: {
         trigger: 'axis',
-        formatter: pars => {
-          return `<div class='clocks-tooltip'><label>${formatTstamp(pars[0].value[0])}</label><br>${pars.map(tooltipRow).join('<br>')}</div>`
-            
-        },
+        formatter: v => tooltipTmpl({
+          rowTmpl: tooltipRowTmpl,
+          v: v
+        }),
         axisPointer: {
           animation: false
         }
+      },
+      dataZoom: [
+        {
+          type: 'slider'
+        },
+        {
+          type: 'inside'
+        }
+      ],
+      grid: {
+        bottom: 80
       },
       xAxis: {
         type: 'time',
@@ -78,8 +97,10 @@ class App {
           }
         }
         mainChart.setOption({
-          series: series
-        });
+          series: series.map(v => ({
+            data: v.data
+          }))
+        })
       }), REFRESH_RATE)
   }
 }
