@@ -5,13 +5,23 @@
   <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
   <meta content="utf-8" http-equiv="encoding">
   <link rel="stylesheet" href="static/style.css">
-  <script src="static/echarts.js"></script>
-  <script src="static/index.js"></script>
+  <script src="static/echarts.js" type="application/javascript"></script>
+  <script src="static/index.js" type="application/javascript"></script>
   <title></title>
 </head>
 
 <body>
-  <div id='main-chart'></div>
+  <script type="text/html" id="tooltip-template">
+    <div class="clocks-tooltip">
+      <label>${App.utils.formatTstamp(self.v[0].value[0])}</label>
+      <br>${self.v.map(self.rowTmpl).join('<br>')}
+    </div>
+  </script>
+  <script type="text/tmpl" id="tooltip-row-template">
+    <span style="background-color:${self.color}"></span>
+    <label>${self.name} - ${self.value[1] + self.value[2]}</label>
+  </script>
+  <div id="main-chart"></div>
   <script>
     new App().start()
   </script>
