@@ -10,7 +10,9 @@ export const register = server => {
   const readAt = name => Deno.readTextFileSync(baseDir + name).trim()
   const names = []
 
-  const ignored = new Set([])
+  const ignored = new Set([
+    'uevent'
+  ])
 
   for (const entry of Deno.readDirSync(baseDir)) {
     if (!entry.isFile) {
@@ -39,7 +41,7 @@ export const register = server => {
   // Try to 'normalize' up some names in favor of their labels
   const endsWithDigit = /.*[0-9]/
   const digits = /[0-9]/
-
+  // Group all file names by their common prefix
   const namesByPrefix = names.sort().reduce((prev, cur) => {
     let prefix = cur
     let name = cur
@@ -59,20 +61,16 @@ export const register = server => {
       continue
     }
     const fixedPrefix = prefix.substring(0, prefix.search(digits))
-    let content
+    // Give it a label if it doesn't has one
+    let content = ''
     if (names.label) {
       content = readAt(names.label)
-    } else {
-      // Invent it a label if it doesn't has one
-      content = ''
     }
     if (names[prefix]) {
-      // Fix pwm1 to value, since it doesn't has a _something for its value just pwm1
+      // File has equal name and prefix, assign 'value' as its name instead
       names.value = names[prefix]
+      // Won't use it anymore
       delete names[prefix]
-    }
-    if (names.length <= 1) {
-      continue
     }
     const fixedName = toCamelCalse(`${fixedPrefix}_${content}`)
     // Delete previous mapping, no need for the label anymore
@@ -88,6 +86,8 @@ export const register = server => {
       name: name,
       fileName: fileName
     }))
+    // If there is a single sub entry, 'promote' it to the root entry
+    // Otherwise use the sub entries instead
     return {
       parser: parsers.generic,
       name: prefix,
