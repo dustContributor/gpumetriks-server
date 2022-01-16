@@ -1,6 +1,6 @@
 import * as parsers from '../parsers.js'
 import * as config from '../config.js'
-import * as responses from '../responses.js'
+import { ok, notFound } from '../responses.js'
 import * as utils from '../utils.js'
 import { toCamelCalse } from '../utils.js'
 
@@ -99,7 +99,7 @@ export const register = server => {
       ['/gpu/' + v.name]: _ => {
         const content = readAt(fileName)
         const res = parser(content)
-        return responses.ok(res)
+        return ok(res)
       }
     }
   }))
@@ -113,7 +113,7 @@ export const register = server => {
       const parsed = v.parser(content)
       res[v.name] = parsed
     }
-    return responses.ok(res)
+    return ok(res)
   }
   // Generic route to get everything
   handlersByRoute['/gpu/all'] = _ => {
@@ -123,7 +123,27 @@ export const register = server => {
       const parsed = v.parser(content)
       res[v.name] = parsed
     }
-    return responses.ok(res)
+    return ok(res)
+  }
+  // Handler to get a group of things at once
+  const handlersByName = handlers.reduce((prev, curr) => prev.set(curr.name, curr) && prev, new Map())
+  handlersByRoute['/gpu/group'] = async req => {
+    const bytes = await req.body.getReader().read()
+    const content = new TextDecoder().decode(bytes.value)
+    const pars = JSON.parse(content)
+    if (!pars?.items?.length) {
+      throw 'invalid request body'
+    }
+    const res = {}
+    for (const item of new Set(pars.items)) {
+      const v = handlersByName.get(item)
+      if (v) {
+        const content = readAt(v.fileName)
+        const parsed = v.parser(content)
+        res[v.name] = parsed
+      }
+    }
+    return utils.isEmpty(res) ? notFound('items') : ok(res)
   }
 
   server.mapAll(handlersByRoute)

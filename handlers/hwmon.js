@@ -1,6 +1,6 @@
 import * as parsers from '../parsers.js'
 import * as config from '../config.js'
-import * as responses from '../responses.js'
+import { ok, notFound } from '../responses.js'
 import * as utils from '../utils.js'
 import { toCamelCalse } from '../utils.js'
 
@@ -106,25 +106,20 @@ export const register = server => {
           const parsed = e.parser(content)
           res[e.name] = parsed
         }
-        return responses.ok(res)
+        return ok(res)
       } : _ => {
         const content = readAt(fileName)
         const res = parser(content)
-        return responses.ok(res)
+        return ok(res)
       }
     }
   }))
-
-  // Generic route to get everything
-  handlersByRoute['/hwmon/all'] = _ => {
-    const res = {}
-    for (const v of handlers) {
-      if (v.entries.length <= 1) {
-        const content = readAt(v.fileName)
-        const parsed = v.parser(content)
-        res[v.name] = parsed
-        continue
-      }
+  const resolveHandler = (v, res) => {
+    if (v.entries.length <= 1) {
+      const content = readAt(v.fileName)
+      const parsed = v.parser(content)
+      res[v.name] = parsed
+    } else {
       const tmp = res[v.name] = {}
       for (const e of v.entries) {
         const content = readAt(e.fileName)
@@ -132,7 +127,33 @@ export const register = server => {
         tmp[e.name] = parsed
       }
     }
-    return responses.ok(res)
+    return res
+  }
+  // Generic route to get everything
+  handlersByRoute['/hwmon/all'] = _ => {
+    const res = {}
+    for (const v of handlers) {
+      resolveHandler(v, res)
+    }
+    return ok(res)
+  }
+  // Handler to get a group of things at once
+  const handlersByName = handlers.reduce((prev, curr) => prev.set(curr.name, curr) && prev, new Map())
+  handlersByRoute['/gpu/group'] = async req => {
+    const bytes = await req.body.getReader().read()
+    const content = new TextDecoder().decode(bytes.value)
+    const pars = JSON.parse(content)
+    if (!pars?.items?.length) {
+      throw 'invalid request body'
+    }
+    const res = {}
+    for (const item of new Set(pars.items)) {
+      const v = handlersByName.get(item)
+      if (v) {
+        resolveHandler(v, res)
+      }
+    }
+    return utils.isEmpty(res) ? notFound('items') : ok(res)
   }
 
   server.mapAll(handlersByRoute)

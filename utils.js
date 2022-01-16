@@ -49,3 +49,14 @@ export const trimChar = (str, ch) => {
   }
   return str;
 }
+/**
+ * Tests if the passed object is empty, ie, has no properties.
+ * @param {*} v any object.
+ * @returns true if the object is empty, false otherwise.
+ */
+export const isEmpty = v => {
+  for (const _ in v) {
+    return false
+  }
+  return true
+}
