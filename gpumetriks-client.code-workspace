@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": "./static"
+		}
+	],
+	"settings": {
+		"deno.enable": false,
+		"javascript.referencesCodeLens.enabled": true
+	}
+}

@@ -1,0 +1,62 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"editor.defaultFormatter": "denoland.vscode-deno",
+		"deno.enable": true,
+		"deno.lint": true,
+		"deno.unstable": true,
+		"deno.codeLens.implementations": true,
+		"deno.suggest.completeFunctionCalls": true,
+		"files.exclude": {
+			"static": true,
+			"gpumetriks-client*": true,
+		},
+		"deno.codeLens.test": false,
+	},
+	"launch": {
+		// Use IntelliSense to learn about possible attributes.
+		// Hover to view descriptions of existing attributes.
+		// For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+		"version": "0.2.0",
+		"configurations": [
+			{
+				"request": "launch",
+				"name": "run-program",
+				"type": "pwa-node",
+				"program": "${workspaceFolder}/main.js",
+				"cwd": "${workspaceFolder}",
+				"runtimeExecutable": "deno",
+				"outputCapture": "std",
+				"runtimeArgs": [
+					"run",
+					"--unstable",
+					"--inspect",
+					"--inspect-brk",
+					"--allow-all"
+				],
+				"attachSimplePort": 9229
+			}
+		]
+	},
+	"tasks": {
+		"version": "2.0.0",
+		"tasks": [
+			{
+				"type": "deno",
+				"command": "run",
+				"problemMatcher": [
+					"$deno"
+				],
+				"label": "deno: run",
+				"args": [
+					"--allow-all", 
+					"${workspaceFolder}/main.js"
+				]
+			}
+		]
+	}
+}
