@@ -2,7 +2,7 @@ import * as parsers from '../parsers.js'
 import * as config from '../config.js'
 import { ok, notFound } from '../responses.js'
 import * as utils from '../utils.js'
-import { toCamelCalse } from '../utils.js'
+import { toCamelCalse, tryParse } from '../utils.js'
 
 export const register = server => {
   const baseDir = `/${utils.trimSeparator(config.HWMON_PATH)}/`
@@ -139,10 +139,10 @@ export const register = server => {
   }
   // Handler to get a group of things at once
   const handlersByName = handlers.reduce((prev, curr) => prev.set(curr.name, curr) && prev, new Map())
-  handlersByRoute['/gpu/group'] = async req => {
+  handlersByRoute['/hwmon/group'] = async req => {
     const bytes = await req.body.getReader().read()
     const content = new TextDecoder().decode(bytes.value)
-    const pars = JSON.parse(content)
+    const pars = tryParse(content)
     if (!pars?.items?.length) {
       throw 'invalid request body'
     }

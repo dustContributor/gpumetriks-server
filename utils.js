@@ -25,6 +25,14 @@ export const toCamelCalse = v => {
   return finalName
 }
 
+export const tryParse = v => {
+  try {
+    return JSON.parse(v)
+  } catch {
+    return null
+  }
+}
+
 export const ignoreDigits = (v, d) => {
   // Ugly
   return Number.parseFloat(v.toFixed(d || 2))
