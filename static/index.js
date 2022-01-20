@@ -19,6 +19,10 @@ class App {
   })
   static #utils = App.#deepFreeze({
     deepFreeze: App.#deepFreeze,
+    ignoreDigits: (v, d) => {
+      // Ugly
+      return Number.parseFloat(v.toFixed(d || 2))
+    },
     padZeroes: v => v.toString().padStart(2, '0'),
     formatTstamp: v => App.utils.padZeroes(v.getHours()) +
       ':' + App.utils.padZeroes(v.getMinutes()) +
@@ -36,7 +40,7 @@ class App {
   start() {
     const groupsByName = {
       'clk': { axis: 0 },
-      // 'mem' : { axis: 0 },
+      'mem': { axis: 2 },
       'fan': { axis: 1 },
       'pwm': { axis: 1 },
       'tmp': { axis: 1 },
@@ -78,12 +82,13 @@ class App {
       data: [],
       name: v.label,
       key: v.name,
+      yAxisIndex: v.axis,
       type: 'line',
       showSymbol: false
     }))
     const option = {
       title: {
-        text: ''
+        text: 'gpumetriks'
       },
       tooltip: {
         trigger: 'axis',
@@ -112,12 +117,19 @@ class App {
           show: false
         }
       },
-      yAxis: {
-        type: 'value',
-        splitLine: {
-          show: false
+      yAxis: [
+        {
+          type: 'value',
+          splitLine: {
+            show: false
+          }
+        }, {
+          type: 'value',
+          splitLine: {
+            show: false
+          }
         }
-      },
+      ],
       series: series
     }
     mainChart.setOption(option)
@@ -157,9 +169,35 @@ class App {
                 break
               case 'mem':
                 break
+              case 'tmp':
+                serie.data.push({
+                  name: serie.name,
+                  value: [
+                    now,
+                    App.utils.ignoreDigits(sample.input / 1000.0, 2),
+                    'C'
+                  ]
+                })
+                break
               case 'fan':
+                serie.data.push({
+                  name: serie.name,
+                  value: [
+                    now,
+                    Math.round(sample.input / sample.max * 100),
+                    '%'
+                  ]
+                })
                 break
               case 'pwm':
+                serie.data.push({
+                  name: serie.name,
+                  value: [
+                    now,
+                    sample.value,
+                    'W'
+                  ]
+                })
                 break
             }
             if (serie.data.length > MAX_SAMPLES) {
